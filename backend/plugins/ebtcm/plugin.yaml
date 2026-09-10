@@ -1,0 +1,111 @@
+manifestVersion: 1
+id: ebtcm
+name: 中成药循证指南库
+version: 0.1.0
+description: 中成药临床指南推荐知识库（EB_TCM）：指南、推荐意见、段落、术语、参考文献的管理与检索接口。
+
+metadata:
+  category: knowledge
+  tags:
+    - guideline
+    - tcm
+    - evidence
+  author: chatcpm
+  license: MIT
+
+backend:
+  module: plugins.ebtcm
+  routers:
+    autoScan: true
+  migrations:
+    - migrations/postgresql/001_init.sql
+  seeds: []
+  jobs: []
+
+frontend:
+  basePath: ebtcm
+  pluginId: ebtcm
+  viewsPath: views
+  apiPath: api
+  delivery:
+    type: source
+    buildRequired: true
+  menus:
+    - name: 指南知识库
+      path: ebtcm
+      component: Layout
+      perms: ''
+      type: M
+      orderNum: 2
+      icon: documentation
+      children:
+        - name: 数据概览
+          path: dashboard
+          component: plugin/ebtcm/dashboard/index
+          routeName: EbtcmDashboard
+          perms: ebtcm:stats:list
+          type: C
+          orderNum: 1
+          icon: chart
+        - name: 指南管理
+          path: guideline
+          component: plugin/ebtcm/guideline/index
+          routeName: EbtcmGuideline
+          perms: ebtcm:guideline:list
+          type: C
+          orderNum: 2
+          icon: documentation
+        - name: 推荐意见
+          path: recommendation
+          component: plugin/ebtcm/recommendation/index
+          routeName: EbtcmRecommendation
+          perms: ebtcm:recommendation:list
+          type: C
+          orderNum: 3
+          icon: list
+        - name: 术语管理
+          path: concept
+          component: plugin/ebtcm/concept/index
+          routeName: EbtcmConcept
+          perms: ebtcm:concept:list
+          type: C
+          orderNum: 4
+          icon: dict
+
+permissions:
+  - code: ebtcm:stats:list
+    name: 数据概览
+  - code: ebtcm:guideline:list
+    name: 指南列表
+  - code: ebtcm:guideline:query
+    name: 指南详情
+  - code: ebtcm:guideline:edit
+    name: 修改指南
+  - code: ebtcm:recommendation:list
+    name: 推荐意见列表
+  - code: ebtcm:recommendation:edit
+    name: 修改推荐意见
+  - code: ebtcm:recommendation:verify
+    name: 核验推荐意见
+  - code: ebtcm:passage:list
+    name: 段落列表
+  - code: ebtcm:passage:edit
+    name: 修改段落
+  - code: ebtcm:concept:list
+    name: 术语列表
+  - code: ebtcm:concept:add
+    name: 新增术语
+  - code: ebtcm:concept:edit
+    name: 修改术语
+  - code: ebtcm:concept:remove
+    name: 删除术语
+
+dependencies:
+  python: []
+  npm: []
+  npmDev: []
+  plugins: []
+
+compatibility:
+  databases:
+    - postgresql
