@@ -35,3 +35,8 @@ __pycache__/
 
 # 线上环境配置含真实数据库密码，不入库；模板见 backend/.env.prod.example
 backend/.env.prod
+
+# 数据库导出文件（体积大，且含数据），不入库
+backend/sql/ebtcm
+*.dump
+*.sql.gz
