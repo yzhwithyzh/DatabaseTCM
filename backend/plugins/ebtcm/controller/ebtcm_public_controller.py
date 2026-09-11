@@ -2,6 +2,7 @@
 EB_TCM 公开检索接口（客户端网站使用，无需登录）
 """
 import os
+import re
 from typing import Annotated
 from uuid import UUID
 
@@ -50,9 +51,24 @@ async def guideline_detail(request: Request, gid: Annotated[UUID, Path()], query
 @ebtcm_public_controller.get('/guideline/{gid}/pdf', summary='指南原文 PDF')
 async def guideline_pdf(request: Request, gid: Annotated[UUID, Path()], query_db: DB):
     row = (await query_db.execute(text('SELECT source_file, title FROM kb.guideline WHERE id = :id'), {'id': gid})).first()
-    if not row or not row[0] or not os.path.exists(row[0]):
+    path = _resolve_pdf_path(row[0]) if row and row[0] else None
+    if not path:
         return ResponseUtil.failure(msg='原文文件不存在')
-    return FileResponse(row[0], media_type='application/pdf', filename=f'{row[1][:60]}.pdf', content_disposition_type='inline')
+    return FileResponse(path, media_type='application/pdf', filename=f'{row[1][:60]}.pdf', content_disposition_type='inline')
+
+
+def _resolve_pdf_path(source_file: str) -> str | None:
+    """
+    定位指南 PDF：优先在环境变量 EBTCM_PDF_DIR 指定的目录下按文件名查找（线上部署用），
+    未配置或找不到时回退到 kb.guideline.source_file 里记录的原始绝对路径（本地抽取环境）。
+    """
+    name = re.split(r'[\\/]', source_file)[-1]
+    base = os.environ.get('EBTCM_PDF_DIR', '').strip()
+    if base:
+        candidate = os.path.join(base, name)
+        if os.path.isfile(candidate):
+            return candidate
+    return source_file if os.path.isfile(source_file) else None
 
 
 @ebtcm_public_controller.get('/entity/{context_type}', summary='药品/疾病/证候/人群页：跨指南推荐意见聚合')
