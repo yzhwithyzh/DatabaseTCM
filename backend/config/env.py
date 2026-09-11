@@ -22,9 +22,9 @@ class AppSettings(BaseSettings):
     应用配置
     """
 
-    app_env: str = 'dev'
+    app_env: str = 'prod'
     app_name: str = 'RuoYi-FasAPI'
-    app_root_path: str = '/dev-api'
+    app_root_path: str = '/prod-api'
     app_host: str = '0.0.0.0'
     app_port: int = 7099
     app_version: str = '1.0.0'
@@ -443,8 +443,8 @@ class GetConfig:
             # 解析命令行参数
             args, _ = parser.parse_known_args()
             run_env = args.env or run_env
-        # 运行环境未指定时默认加载.env.dev
-        run_env = run_env.strip() or 'dev'
+        # 运行环境未指定时默认加载.env.prod（本地开发请显式传 --env=dev 或设置 APP_ENV=dev）
+        run_env = run_env.strip() or 'prod'
         env_file = os.path.join(BACKEND_ROOT, f'.env.{run_env}')
         if not os.path.isfile(env_file):
             raise FileNotFoundError(f'环境配置文件不存在：{env_file}')
