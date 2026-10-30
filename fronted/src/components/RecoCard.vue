@@ -17,7 +17,7 @@
     <div class="detail" v-if="r.conditions"><b>适用条件：</b>{{ r.conditions }}</div>
     <div class="detail" v-if="r.dosage"><b>用法用量：</b>{{ r.dosage }}</div>
     <el-collapse v-if="r.evidenceSummary || r.safetySummary || r.references?.length" class="more">
-      <el-collapse-item title="证据与文献">
+      <el-collapse-item :title="moreTitle">
         <div class="detail" v-if="r.evidenceSummary"><b>证据描述：</b>{{ r.studyType || "" }} {{ r.studyCount ? r.studyCount + " 项研究" : "" }} {{ r.sampleSize ? r.sampleSize + " 例" : "" }}。{{ r.evidenceSummary }}</div>
         <div class="detail" v-if="r.safetySummary"><b>安全性：</b>{{ r.safetySummary }}</div>
         <div class="detail" v-if="r.references?.length"><b>引用文献：</b>
@@ -37,6 +37,14 @@ import { STRENGTH, STRENGTH_TAG, CERTAINTY, CTX, CTX_TAG, highlight } from "@/la
 const props = defineProps({ r: Object, q: { type: String, default: "" }, showGuideline: { type: Boolean, default: true } });
 const router = useRouter();
 function goEntity(c) { router.push(`/entity/${c.type}/${encodeURIComponent(c.text)}`); }
+// 折叠面板标题按实际内容命名：没有关联文献时不再叫"证据与文献"，避免误导
+const moreTitle = computed(() => {
+  const parts = [];
+  if (props.r.evidenceSummary) parts.push("证据描述");
+  if (props.r.safetySummary) parts.push("安全性");
+  if (props.r.references?.length) parts.push(`引用文献（${props.r.references.length}）`);
+  return parts.join(" · ");
+});
 </script>
 
 <style scoped>

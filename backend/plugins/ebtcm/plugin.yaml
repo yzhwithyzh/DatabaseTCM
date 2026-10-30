@@ -1,8 +1,8 @@
 manifestVersion: 1
 id: ebtcm
-name: 中成药循证指南库
-version: 0.1.0
-description: 中成药临床指南推荐知识库（EB_TCM）：指南、推荐意见、段落、术语、参考文献的管理与检索接口。
+name: 中医药循证指南库
+version: 0.2.0
+description: 中医药临床指南推荐知识库（EB_TCM）：指南、推荐意见、段落、术语、参考文献的管理与检索接口。
 
 metadata:
   category: knowledge
@@ -19,6 +19,7 @@ backend:
     autoScan: true
   migrations:
     - migrations/postgresql/001_init.sql
+    - migrations/postgresql/002_member.sql
   seeds: []
   jobs: []
 
@@ -71,6 +72,14 @@ frontend:
           type: C
           orderNum: 4
           icon: dict
+        - name: 前台用户
+          path: member
+          component: plugin/ebtcm/member/index
+          routeName: EbtcmMember
+          perms: ebtcm:member:list
+          type: C
+          orderNum: 5
+          icon: peoples
 
 permissions:
   - code: ebtcm:stats:list
@@ -99,6 +108,14 @@ permissions:
     name: 修改术语
   - code: ebtcm:concept:remove
     name: 删除术语
+  - code: ebtcm:member:list
+    name: 前台用户列表
+  - code: ebtcm:member:edit
+    name: 新增/修改前台用户
+  - code: ebtcm:member:audit
+    name: 审核注册申请
+  - code: ebtcm:member:remove
+    name: 删除前台用户
 
 dependencies:
   python: []

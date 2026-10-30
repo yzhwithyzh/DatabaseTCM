@@ -57,7 +57,7 @@
 
           <!-- 正文：直接展示 PDF -->
           <div v-if="view === 'text'" style="margin-top: 12px">
-            <iframe :src="pdfSrc" class="pdf-frame" title="指南原文 PDF" />
+            <iframe v-if="pdfSrc" :src="pdfSrc" class="pdf-frame" title="指南原文 PDF" />
           </div>
         </div>
       </el-col>
@@ -79,8 +79,10 @@ import { GTYPE, STATUS, STRENGTH, CTX, CTX_TAG } from "@/labels";
 import RecoCard from "@/components/RecoCard.vue";
 const route = useRoute();
 const d = ref({}); const loading = ref(true); const view = ref("info"); const strengthFilter = ref(""); const pdfPage = ref(null);
-// 正文 PDF 地址；从检索结果带 ?seq= 进来时定位到该段落所在页
-const pdfSrc = computed(() => pdfUrl(route.params.id) + (pdfPage.value ? `#page=${pdfPage.value}` : ""));
+// 正文 PDF 地址（需先换短期访问凭证）；从检索结果带 ?seq= 进来时定位到该段落所在页
+const pdfBase = ref("");
+const pdfSrc = computed(() => pdfBase.value && pdfBase.value + (pdfPage.value ? `#page=${pdfPage.value}` : ""));
+watch(view, async (v) => { if (v === "text" && !pdfBase.value) pdfBase.value = await pdfUrl(route.params.id); }, { immediate: true });
 const recos = computed(() => (d.value.recommendations || []).filter((r) => !strengthFilter.value || r.strength === strengthFilter.value));
 const strengthCount = computed(() => { const m = {}; (d.value.recommendations || []).forEach((r) => (m[r.strength] = (m[r.strength] || 0) + 1)); return m; });
 const firstAbstract = computed(() => (d.value.passages || []).find((p) => /摘要|Abstract/.test(p.text || ""))?.text?.slice(0, 600));

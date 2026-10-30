@@ -63,3 +63,29 @@ export const CERTAINTY = { high: "高", moderate: "中", low: "低", very_low: "
 export const DIRECTION = { for: "推荐", against: "不推荐", none: "未表态" };
 export const GTYPE = { guideline: "指南", consensus: "专家共识", standard: "团体标准", other: "其他" };
 export const STRENGTH_TAG = { strong: "success", weak: "warning", ungraded: "info", not_reported: "" };
+
+// ---------- 前台用户（客户端网站账号，与后台账号隔离） ----------
+export function listMember(query) {
+  return request({ url: "/ebtcm/admin/member/list", method: "get", params: query });
+}
+export function getMemberCounts() {
+  return request({ url: "/ebtcm/admin/member/counts", method: "get" });
+}
+export function saveMember(data) {
+  return request({ url: "/ebtcm/admin/member", method: "post", data });
+}
+export function auditMember(data) {
+  return request({ url: "/ebtcm/admin/member/audit", method: "put", data });
+}
+export function changeMemberStatus(data) {
+  return request({ url: "/ebtcm/admin/member/status", method: "put", data });
+}
+export function resetMemberPwd(data) {
+  return request({ url: "/ebtcm/admin/member/resetPwd", method: "put", data });
+}
+export function delMember(ids) {
+  return request({ url: "/ebtcm/admin/member/" + ids, method: "delete" });
+}
+
+export const MEMBER_STATUS = { pending: "待审核", active: "正常", rejected: "已驳回", disabled: "已停用" };
+export const MEMBER_STATUS_TAG = { pending: "warning", active: "success", rejected: "danger", disabled: "info" };

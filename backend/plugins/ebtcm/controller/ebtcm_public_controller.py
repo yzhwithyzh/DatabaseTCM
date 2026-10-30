@@ -1,5 +1,5 @@
 """
-EB_TCM 公开检索接口（客户端网站使用，无需登录）
+EB_TCM 客户端检索接口（客户端网站使用，需客户端用户登录，见 ebtcm_member_controller）
 """
 import os
 import re
@@ -15,9 +15,12 @@ from common.aspect.db_session import DBSessionDependency
 from common.router import APIRouterPro
 from plugins.ebtcm.entity.vo.ebtcm_vo import AdvancedQueryModel, PicoQueryModel, SearchQueryModel
 from plugins.ebtcm.service.ebtcm_service import EbtcmService
+from plugins.ebtcm.service.member_service import MemberAuthDependency, MemberService
 from utils.response_util import ResponseUtil
 
-ebtcm_public_controller = APIRouterPro(prefix='/ebtcm/public', order_num=31, tags=['指南知识库-公开检索'])
+ebtcm_public_controller = APIRouterPro(prefix='/ebtcm/public', order_num=31, tags=['指南知识库-客户端检索'], dependencies=[MemberAuthDependency()])
+# PDF 由 iframe 直接加载，带不了 Authorization 头，单独一个路由用短期凭证校验
+ebtcm_public_file_controller = APIRouterPro(prefix='/ebtcm/public', order_num=31, tags=['指南知识库-客户端检索'])
 
 DB = Annotated[AsyncSession, DBSessionDependency()]
 
@@ -48,8 +51,14 @@ async def guideline_detail(request: Request, gid: Annotated[UUID, Path()], query
     return ResponseUtil.success(data=data) if data else ResponseUtil.failure(msg='指南不存在')
 
 
-@ebtcm_public_controller.get('/guideline/{gid}/pdf', summary='指南原文 PDF')
-async def guideline_pdf(request: Request, gid: Annotated[UUID, Path()], query_db: DB):
+@ebtcm_public_controller.get('/guideline/{gid}/pdf-ticket', summary='换取指南原文 PDF 的短期访问凭证')
+async def guideline_pdf_ticket(request: Request, gid: Annotated[UUID, Path()], member: Annotated[dict, MemberAuthDependency()]) -> Response:
+    return ResponseUtil.success(data=MemberService.pdf_ticket(member, str(gid)))
+
+
+@ebtcm_public_file_controller.get('/guideline/{gid}/pdf', summary='指南原文 PDF（凭 pdf-ticket 访问）')
+async def guideline_pdf(request: Request, gid: Annotated[UUID, Path()], query_db: DB, ticket: str = Query(min_length=1)):
+    MemberService.check_pdf_ticket(ticket, str(gid))
     row = (await query_db.execute(text('SELECT source_file, title FROM kb.guideline WHERE id = :id'), {'id': gid})).first()
     path = _resolve_pdf_path(row[0]) if row and row[0] else None
     if not path:

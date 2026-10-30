@@ -1,11 +1,13 @@
 <template>
+  <router-view v-if="$route.meta.public" />
+  <template v-else>
   <header class="app-header">
     <div class="header-inner">
       <router-link to="/" class="logo" aria-label="EB-TCM 首页">
         <Logo :size="38" />
         <span class="wordmark">
           <span class="logo-main">EB-TCM</span>
-          <span class="logo-sub">中成药循证指南库</span>
+          <span class="logo-sub">中医药循证指南库</span>
         </span>
       </router-link>
 
@@ -24,6 +26,25 @@
         <router-link to="/advanced"><el-icon><Operation /></el-icon>高级检索 / PICOS</router-link>
         <router-link to="/compare"><el-icon><DataAnalysis /></el-icon>推荐对比</router-link>
       </nav>
+
+      <el-dropdown v-if="auth.member" trigger="click" @command="onUserCmd">
+        <button type="button" class="user-btn" aria-label="账号菜单">
+          <span class="avatar">{{ auth.member.realName?.slice(-2) || "我" }}</span>
+          <span class="user-name">{{ auth.member.realName }}</span>
+          <el-icon><ArrowDown /></el-icon>
+        </button>
+        <template #dropdown>
+          <div class="user-card">
+            <div class="user-card-name">{{ auth.member.realName }}<span class="muted">（{{ auth.member.userName }}）</span></div>
+            <div class="muted" v-if="auth.member.organization">{{ [auth.member.organization, auth.member.department].filter(Boolean).join(" · ") }}</div>
+            <div class="muted">账号有效期：{{ auth.member.expireDate || "长期" }}</div>
+          </div>
+          <el-dropdown-menu>
+            <el-dropdown-item command="pwd" icon="Key">修改密码</el-dropdown-item>
+            <el-dropdown-item command="logout" icon="SwitchButton" divided>退出登录</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </div>
   </header>
 
@@ -33,14 +54,29 @@
 
   <footer class="footer">
     <div class="footer-inner">
-      <div class="footer-brand"><Logo :size="22" /><span>EB-TCM 中成药循证指南库</span></div>
-      <div class="footer-note">数据来源于公开发表的中成药临床指南与专家共识，推荐意见由模型抽取并经原文校验，仅供专业人员参考。</div>
+      <div class="footer-brand"><Logo :size="22" /><span>EB-TCM 中医药循证指南库</span></div>
+      <div class="footer-note">数据来源于公开发表的中医药临床指南与专家共识，推荐意见由模型抽取并经原文校验，仅供专业人员参考。</div>
     </div>
   </footer>
+
+  <el-dialog v-model="pwdOpen" title="修改密码" width="420px" append-to-body @closed="pwdRef?.resetFields()">
+    <el-form ref="pwdRef" :model="pwd" :rules="pwdRules" label-width="80px" @submit.prevent="savePwd">
+      <el-form-item label="原密码" prop="oldPassword"><el-input v-model="pwd.oldPassword" type="password" show-password autocomplete="current-password" /></el-form-item>
+      <el-form-item label="新密码" prop="newPassword"><el-input v-model="pwd.newPassword" type="password" show-password placeholder="8 位以上，含字母和数字" autocomplete="new-password" /></el-form-item>
+      <el-form-item label="确认密码" prop="confirm"><el-input v-model="pwd.confirm" type="password" show-password autocomplete="new-password" /></el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="pwdOpen = false">取消</el-button>
+      <el-button type="primary" :loading="pwdBusy" @click="savePwd">保存</el-button>
+    </template>
+  </el-dialog>
+  </template>
 </template>
 
 <script setup>
-import { suggest } from "@/api";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { suggest, logout, changePassword } from "@/api";
+import { auth, clearLogin } from "@/auth";
 import { CTX } from "@/labels";
 import Logo from "@/components/Logo.vue";
 const router = useRouter(); const route = useRoute();
@@ -51,6 +87,30 @@ function onSelect(item) {
   else router.push(`/entity/${item.type}/${encodeURIComponent(item.term)}`);
 }
 function go() { if (kw.value) router.push({ path: "/search", query: { q: kw.value } }); }
+
+// ---------- 账号 ----------
+const pwdOpen = ref(false); const pwdBusy = ref(false); const pwdRef = ref();
+const pwd = reactive({ oldPassword: "", newPassword: "", confirm: "" });
+const pwdRules = {
+  oldPassword: [{ required: true, message: "请输入原密码", trigger: "blur" }],
+  newPassword: [{ required: true, message: "请输入新密码", trigger: "blur" }, { pattern: /^(?=.*[A-Za-z])(?=.*\d).{8,32}$/, message: "8-32 位，且同时包含字母和数字", trigger: "blur" }],
+  confirm: [{ validator: (_, v, cb) => cb(v === pwd.newPassword ? undefined : new Error("两次输入的密码不一致")), trigger: "blur" }],
+};
+async function savePwd() {
+  if (!(await pwdRef.value.validate().catch(() => false))) return;
+  pwdBusy.value = true;
+  try {
+    await changePassword({ oldPassword: pwd.oldPassword, newPassword: pwd.newPassword });
+    ElMessage.success("密码已修改"); pwdOpen.value = false;
+  } finally { pwdBusy.value = false; }
+}
+async function onUserCmd(cmd) {
+  if (cmd === "pwd") { pwdOpen.value = true; return; }
+  await ElMessageBox.confirm("确定退出登录？", "提示", { type: "warning" });
+  await logout().catch(() => {});
+  clearLogin();
+  router.replace({ name: "login" });
+}
 </script>
 
 <style scoped>
@@ -67,6 +127,12 @@ function go() { if (kw.value) router.push({ path: "/search", query: { q: kw.valu
 .nav a.router-link-active { color: var(--c-primary); font-weight: 600; }
 .nav a.router-link-active::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -13px; height: 2px; border-radius: 2px; background: var(--c-accent); }
 .nav .el-icon { font-size: 16px; }
+.user-btn { display: inline-flex; align-items: center; gap: 8px; background: none; border: 0; padding: 4px 6px 4px 4px; border-radius: 999px; cursor: pointer; color: var(--c-text-2); font: inherit; font-size: 14px; transition: background 0.15s var(--ease); }
+.user-btn:hover { background: var(--c-primary-50); }
+.avatar { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--c-primary); color: #fff; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; }
+.user-name { max-width: 6em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-card { padding: 10px 16px 8px; min-width: 220px; border-bottom: 1px solid var(--c-border); line-height: 1.7; }
+.user-card-name { font-weight: 600; color: var(--c-text); }
 .app-main { flex: 1; }
 .footer { border-top: 1px solid var(--c-border); background: #fff; }
 .footer-inner { max-width: 1400px; margin: 0 auto; padding: 22px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -74,7 +140,7 @@ function go() { if (kw.value) router.push({ path: "/search", query: { q: kw.valu
 .footer-note { color: var(--c-text-3); font-size: 12.5px; }
 @media (max-width: 900px) {
   .header-inner { gap: 12px; }
-  .logo-sub, .nav a span { display: none; }
+  .logo-sub, .nav a span, .user-name { display: none; }
   .nav a { padding: 8px; }
 }
 </style>

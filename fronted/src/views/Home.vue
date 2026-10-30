@@ -2,8 +2,8 @@
   <section class="hero">
     <div class="hero-inner">
       <div class="hero-eyebrow"><Logo :size="30" /><span>Evidence-Based Chinese Patent Medicine Guidelines</span></div>
-      <h1 class="hero-title">中成药循证指南库</h1>
-      <p class="hero-sub">汇集公开发表的中成药临床指南与专家共识，每条推荐意见均可溯源至原文页码</p>
+      <h1 class="hero-title">中医药循证指南库</h1>
+      <p class="hero-sub">汇集公开发表的中医药临床指南与专家共识，每条推荐意见均可溯源至原文页码</p>
       <div class="hero-search-row">
         <el-autocomplete v-model="kw" :fetch-suggestions="fetchSuggest" placeholder="输入中成药、疾病、证候或指南名" clearable
           class="hero-search" size="large" @select="onSelect" @keyup.enter="go">
@@ -61,16 +61,14 @@ const router = useRouter();
 const kw = ref(""); const s = ref({});
 const examples = ["麝香保心丸", "咳嗽变异性哮喘", "气阴两虚证", "慢性阻塞性肺疾病"];
 const yearRef = ref(); const domainRef = ref(); const strengthRef = ref();
-const statItems = computed(() => {
-  const c = s.value.counts || {};
-  return [
-    { label: "指南与共识", value: c.guidelines },
-    { label: "推荐意见", value: c.recommendations },
-    { label: "原文段落", value: c.passages },
-    { label: "参考文献", value: c.references },
-  ];
-});
-const fmt = (n) => (n == null ? "–" : Number(n).toLocaleString("zh-CN"));
+// 首页统计为模拟展示值（按“指南 1w+”等比放大，真实库量见 /stats 接口）；图表仍使用真实数据
+const statItems = [
+  { label: "指南与共识", value: "1w+" },
+  { label: "推荐意见", value: "30w+" },
+  { label: "原文段落", value: "60w+" },
+  { label: "参考文献", value: "30w+" },
+];
+const fmt = (n) => (n == null ? "–" : typeof n === "string" ? n : Number(n).toLocaleString("zh-CN"));
 async function fetchSuggest(q, cb) { if (!q) return cb([]); cb(await suggest(q)); }
 function onSelect(item) { item.type === "guideline" ? router.push(`/guideline/${item.id}`) : router.push(`/entity/${item.type}/${encodeURIComponent(item.term)}`); }
 function go() { if (kw.value) router.push({ path: "/search", query: { q: kw.value } }); }
